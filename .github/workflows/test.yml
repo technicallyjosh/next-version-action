@@ -40,7 +40,6 @@ jobs:
       - name: Test minor
         run: |
           [ "${{ steps.minor.outputs.next_version }}" = "v1.1.0" ]
-          - name: Test minor
       - name: Test patch
         run: |
           [ "${{ steps.patch.outputs.next_version }}" = "v1.0.1" ]
