@@ -15,10 +15,32 @@ jobs:
           npm install
       - run: |
           npm run all
-  test: # make sure the action works on a clean machine without building
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: ./
+      - id: major
+        uses: ./
         with:
-          milliseconds: 1000
+          version: v1.0.0
+          type: major
+      - id: minor
+        uses: ./
+        with:
+          version: v1.0.0
+          type: minor
+      - id: patch
+        uses: ./
+        with:
+          version: v1.0.0
+          type: patch
+      - name: Test major
+        run: |
+          [ "${{ steps.major.outputs.next_version }}" = "v2.0.0" ]
+      - name: Test minor
+        run: |
+          [ "${{ steps.minor.outputs.next_version }}" = "v1.1.0" ]
+          - name: Test minor
+      - name: Test patch
+        run: |
+          [ "${{ steps.patch.outputs.next_version }}" = "v1.0.1" ]

@@ -1,0 +1,13 @@
+name: 'Next Version'
+description: 'Get next version using semver'
+author: 'technicallyjosh'
+inputs:
+  version:
+    required: true
+    description: The version to get the next version from.
+  type:
+    description: Release type for incrementing the version. major, minor, or patch.
+    default: minor
+runs:
+  using: 'node16'
+  main: 'dist/index.js'

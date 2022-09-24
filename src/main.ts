@@ -1,19 +1,30 @@
-import * as core from '@actions/core'
-import {wait} from './wait'
+import * as core from '@actions/core';
+import {ReleaseType, inc} from 'semver';
 
-async function run(): Promise<void> {
+function run(): void {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+    const inputVersion = core.getInput('version');
+    const inputType = core.getInput('type');
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const versionRegex = /(\d+).(\d+).(\d+)/;
+    const matchedVersion = inputVersion.match(versionRegex);
+    const version = matchedVersion === null ? '0.0.0' : matchedVersion[0];
+    const nextVersion = inc(version, inputType as ReleaseType);
+    if (nextVersion === null) {
+      throw new Error(`could not determine next version: ${version}`);
+    }
 
-    core.setOutput('time', new Date().toTimeString())
-  } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    core.debug(`next version: ${nextVersion}`);
+    core.setOutput('next_version_number', nextVersion);
+    core.setOutput(
+      'next_version',
+      inputVersion.replace(/(\d+).(\d+).(\d+)/, nextVersion),
+    );
+  } catch (e) {
+    if (e instanceof Error) {
+      core.setFailed(e.message);
+    }
   }
 }
 
-run()
+run();
