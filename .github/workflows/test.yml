@@ -19,17 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - id: major
+      - name: Major
+        id: major
         uses: ./
         with:
           version: v1.0.0
           type: major
-      - id: minor
+      - name: Minor
+        id: minor
         uses: ./
         with:
           version: v1.0.0
           type: minor
-      - id: patch
+      - name: Patch
+        id: patch
         uses: ./
         with:
           version: v1.0.0
