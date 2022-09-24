@@ -4,10 +4,19 @@ author: 'technicallyjosh'
 inputs:
   version:
     required: true
-    description: The version to get the next version from.
+    description: The version string to get the next version from.
   type:
     description: Release type for incrementing the version. major, minor, or patch.
     default: minor
+outputs:
+  next_version:
+    description: |
+      The next version determined based on the input. This includes all other
+      parts of the string.
+  next_version_number:
+    description: |
+      The next version as a number only. This omits any prefixes or suffixes of
+      the inputted string.
 runs:
   using: 'node16'
   main: 'dist/index.js'
