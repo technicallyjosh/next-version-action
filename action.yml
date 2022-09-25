@@ -1,4 +1,4 @@
-name: 'Next Version'
+name: 'Next Version Action'
 description: 'Get next version using semver'
 author: 'technicallyjosh'
 inputs:
