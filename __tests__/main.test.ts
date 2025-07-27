@@ -1,137 +1,198 @@
-'use strict';
+import * as core from '../__fixtures__/core';
+import * as exec from '../__fixtures__/exec';
+import {expect, describe} from '@jest/globals';
+import {jest} from '@jest/globals';
 
-import cp from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import tmp from 'tmp';
-import {expect, test, describe} from '@jest/globals';
+jest.unstable_mockModule('@actions/core', () => core);
+jest.unstable_mockModule('@actions/exec', () => exec);
 
-describe('runs', () => {
-  const np = process.execPath;
-  const ip = path.join(import.meta.dirname, '..', 'dist', 'index.js');
+// The module being tested should be imported dynamically. This ensures that the
+// mocks are used in place of any actual dependencies.
+const {run} = await import('../src/main.js');
 
-  function getOutputFilename(): string | undefined {
-    return tmp.fileSync({prefix: 'gh-output-'}).name;
-  }
+describe('run', () => {
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
 
-  function assertOutputFileSetsValue(
-    filename: string,
-    name: string,
-    value: string,
-  ) {
-    const contents = fs.readFileSync(filename, 'utf8');
-    const heredocRegex = /([^<]+?)<<(.+)\n([^\n]+)\n\2(?:\n|$)/gm;
+  it('default pattern minor works', async () => {
+    mock({}, 'v1.0.0');
 
-    for (const match of contents.matchAll(heredocRegex)) {
-      // group 1 is the name, group 3 is the value
-      if (match[1] === name && match[3] === value) {
-        return;
-      }
-    }
+    await run();
 
-    throw new Error(
-      `Could not find output ${name} with value ${value} in GITHUB_OUTPUT file ${filename}`,
+    expect(exec.exec).toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'v1.0.0',
     );
-  }
-
-  test('with prefix', () => {
-    process.env['INPUT_VERSION'] = 'test/v1.0.0';
-    process.env['INPUT_TYPE'] = 'minor';
-    process.env['GITHUB_OUTPUT'] = getOutputFilename();
-
-    const out = cp.execFileSync(np, [ip], {env: process.env}).toString();
-
-    expect(out).toContain('::debug::next version: 1.1.0');
-
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
       'next_version_number',
       '1.1.0',
     );
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
-      'next_version',
-      'test/v1.1.0',
-    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(3, 'next_version', 'v1.1.0');
   });
 
-  test('with suffix', () => {
-    process.env['INPUT_VERSION'] = '1.0.0-test';
-    process.env['INPUT_TYPE'] = 'minor';
-    process.env['GITHUB_OUTPUT'] = getOutputFilename();
+  it('default pattern major works', async () => {
+    mock({type: 'major'}, 'v1.0.0');
 
-    const out = cp.execFileSync(np, [ip], {env: process.env}).toString();
-    expect(out).toContain('::debug::next version: 1.1.0');
+    await run();
 
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
-      'next_version_number',
-      '1.1.0',
+    expect(exec.exec).toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'v1.0.0',
     );
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
-      'next_version',
-      '1.1.0-test',
-    );
-  });
-
-  test('with v', () => {
-    process.env['INPUT_VERSION'] = 'v1.0.0';
-    process.env['INPUT_TYPE'] = 'minor';
-    process.env['GITHUB_OUTPUT'] = getOutputFilename();
-
-    const out = cp.execFileSync(np, [ip], {env: process.env}).toString();
-    expect(out).toContain('::debug::next version: 1.1.0');
-
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
-      'next_version_number',
-      '1.1.0',
-    );
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
-      'next_version',
-      'v1.1.0',
-    );
-  });
-
-  test('major', () => {
-    process.env['INPUT_VERSION'] = 'v1.0.0';
-    process.env['INPUT_TYPE'] = 'major';
-    process.env['GITHUB_OUTPUT'] = getOutputFilename();
-
-    const out = cp.execFileSync(np, [ip], {env: process.env}).toString();
-    expect(out).toContain('::debug::next version: 2.0.0');
-
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
       'next_version_number',
       '2.0.0',
     );
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
-      'next_version',
-      'v2.0.0',
-    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(3, 'next_version', 'v2.0.0');
   });
 
-  test('patch', () => {
-    process.env['INPUT_VERSION'] = 'v1.0.0';
-    process.env['INPUT_TYPE'] = 'patch';
-    process.env['GITHUB_OUTPUT'] = getOutputFilename();
+  it('default pattern patch works', async () => {
+    mock({type: 'patch'}, 'v1.0.0');
 
-    const out = cp.execFileSync(np, [ip], {env: process.env}).toString();
-    expect(out).toContain('::debug::next version: 1.0.1');
+    await run();
 
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
+    expect(exec.exec).toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'v1.0.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
       'next_version_number',
       '1.0.1',
     );
-    assertOutputFileSetsValue(
-      process.env['GITHUB_OUTPUT']!,
+    expect(core.setOutput).toHaveBeenNthCalledWith(3, 'next_version', 'v1.0.1');
+  });
+
+  it('custom pattern minor works', async () => {
+    mock({pattern: 'pkg/test/v*'}, 'pkg/test/v1.0.0');
+
+    await run();
+
+    expect(exec.exec).toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'pkg/test/v1.0.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
+      'next_version_number',
+      '1.1.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      3,
       'next_version',
-      'v1.0.1',
+      'pkg/test/v1.1.0',
     );
   });
+
+  it('custom pattern major works', async () => {
+    mock({pattern: 'pkg/test/v*'}, 'pkg/test/v1.0.0');
+
+    await run();
+
+    expect(exec.exec).toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'pkg/test/v1.0.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
+      'next_version_number',
+      '1.1.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      3,
+      'next_version',
+      'pkg/test/v1.1.0',
+    );
+  });
+
+  it('version minor works', async () => {
+    mock({version: 'v2.1.0'});
+
+    await run();
+
+    expect(exec.exec).not.toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'v2.1.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
+      'next_version_number',
+      '2.2.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(3, 'next_version', 'v2.2.0');
+  });
+
+  it('version major works', async () => {
+    mock({version: 'v2.1.0', type: 'major'});
+
+    await run();
+
+    expect(exec.exec).not.toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'v2.1.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
+      'next_version_number',
+      '3.0.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(3, 'next_version', 'v3.0.0');
+  });
+
+  it('version patch works', async () => {
+    mock({version: 'v2.1.0', type: 'patch'});
+
+    await run();
+
+    expect(exec.exec).not.toHaveBeenCalled();
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      1,
+      'current_version',
+      'v2.1.0',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(
+      2,
+      'next_version_number',
+      '2.1.1',
+    );
+    expect(core.setOutput).toHaveBeenNthCalledWith(3, 'next_version', 'v2.1.1');
+  });
 });
+
+function mock(inputs: {[key: string]: string}, versionOutput?: string) {
+  const values: {[key: string]: string} = {
+    version: '',
+    type: '',
+    pattern: '',
+    ...inputs,
+  };
+
+  core.getInput.mockImplementation(name => {
+    return values[name];
+  });
+
+  if (versionOutput) {
+    exec.exec.mockImplementation(async (_command, _args, options) => {
+      options?.listeners?.stdout?.(Buffer.from(versionOutput));
+
+      return 0;
+    });
+  }
+}

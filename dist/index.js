@@ -30,6 +30,10 @@ import require$$6$1 from 'timers';
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
 var core = {};
 
 var command = {};
@@ -27602,11 +27606,11 @@ function requireIdentifiers () {
 	return identifiers;
 }
 
-var semver$1;
+var semver$2;
 var hasRequiredSemver$1;
 
 function requireSemver$1 () {
-	if (hasRequiredSemver$1) return semver$1;
+	if (hasRequiredSemver$1) return semver$2;
 	hasRequiredSemver$1 = 1;
 
 	const debug = requireDebug();
@@ -27925,8 +27929,8 @@ function requireSemver$1 () {
 	  }
 	}
 
-	semver$1 = SemVer;
-	return semver$1;
+	semver$2 = SemVer;
+	return semver$2;
 }
 
 var parse_1;
@@ -29846,11 +29850,11 @@ function requireSubset () {
 	return subset_1;
 }
 
-var semver;
+var semver$1;
 var hasRequiredSemver;
 
 function requireSemver () {
-	if (hasRequiredSemver) return semver;
+	if (hasRequiredSemver) return semver$1;
 	hasRequiredSemver = 1;
 
 	// just pre-load all the stuff that index.js lazily exports
@@ -29895,7 +29899,7 @@ function requireSemver () {
 	const intersects = requireIntersects();
 	const simplifyRange = requireSimplify();
 	const subset = requireSubset();
-	semver = {
+	semver$1 = {
 	  parse,
 	  valid,
 	  clean,
@@ -29942,31 +29946,85 @@ function requireSemver () {
 	  compareIdentifiers: identifiers.compareIdentifiers,
 	  rcompareIdentifiers: identifiers.rcompareIdentifiers,
 	};
-	return semver;
+	return semver$1;
 }
 
 var semverExports = requireSemver();
+var semver = /*@__PURE__*/getDefaultExportFromCjs(semverExports);
 
-function run() {
+var execExports = requireExec();
+
+/**
+ * The main function for the action.
+ */
+async function run() {
     try {
-        const inputVersion = coreExports.getInput('version');
-        const inputType = coreExports.getInput('type');
+        const input = getInput();
+        // Default to the input version.
+        let currentVersion = input.version;
+        coreExports.debug(`currentVersion: ${currentVersion}`);
+        if (currentVersion === '' || input.pattern !== '') {
+            let out = '';
+            let err = '';
+            await execExports.exec('git', ['describe', '--tags', `--match="${input.pattern}"`, '--abbrev=0"'], {
+                listeners: {
+                    stdout: (data) => {
+                        out += data.toString();
+                    },
+                    stderr: (data) => {
+                        err += data.toString();
+                    },
+                },
+            });
+            if (err !== '') {
+                throw new Error(`describe failed for pattern: ${input.pattern}`);
+            }
+            if (out === '') {
+                throw new Error(`describe resulted with empty tag: ${input.pattern}`);
+            }
+            currentVersion = out;
+            coreExports.debug(`current version: ${currentVersion}`);
+        }
         const versionRegex = /(\d+).(\d+).(\d+)/;
-        const matchedVersion = inputVersion.match(versionRegex);
+        const matchedVersion = currentVersion.match(versionRegex);
         const version = matchedVersion === null ? '0.0.0' : matchedVersion[0];
-        const nextVersion = semverExports.inc(version, inputType);
+        const nextVersion = semver.inc(version, input.type);
         if (nextVersion === null) {
             throw new Error(`could not determine next version: ${version}`);
         }
         coreExports.debug(`next version: ${nextVersion}`);
+        coreExports.setOutput('current_version', currentVersion);
         coreExports.setOutput('next_version_number', nextVersion);
-        coreExports.setOutput('next_version', inputVersion.replace(/(\d+).(\d+).(\d+)/, nextVersion));
+        coreExports.setOutput('next_version', currentVersion.replace(/(\d+).(\d+).(\d+)/, nextVersion));
     }
     catch (e) {
         if (e instanceof Error) {
             coreExports.setFailed(e.message);
         }
+        throw e;
     }
 }
+/**
+ * Retrieves and returns the action inputs required for the action.
+ */
+function getInput() {
+    const version = coreExports.getInput('version', { trimWhitespace: true });
+    const type = (coreExports.getInput('type') || 'minor');
+    let pattern = coreExports.getInput('pattern', { trimWhitespace: true });
+    if (version === '' && pattern === '') {
+        pattern = 'v[0-9]*';
+    }
+    return {
+        version,
+        type,
+        pattern,
+    };
+}
+
+/**
+ * The entrypoint for the action. This file simply imports and runs the action's
+ * main logic.
+ */
+/* istanbul ignore next */
 run();
 //# sourceMappingURL=index.js.map

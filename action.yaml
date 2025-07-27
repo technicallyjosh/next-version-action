@@ -3,12 +3,19 @@ description: 'Get next version using semver'
 author: technicallyjosh
 inputs:
   version:
-    required: true
-    description: The version string to get the next version from.
+    description: |
+      The version string to get the next version from.
   type:
-    description: Release type for incrementing the version. major, minor, or patch.
+    description: |
+      Release type for incrementing the version. major, minor, or patch.
     default: minor
+  pattern:
+    description: |
+      The version pattern to get the current and next version from.
 outputs:
+  current_version:
+    description: |
+      The current version found based on the input pattern.
   next_version:
     description: |
       The next version determined based on the input. This includes all other
