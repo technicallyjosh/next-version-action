@@ -1,6 +1,6 @@
 'use strict';
 
-import * as core from '@actions/core';
+import core from '@actions/core';
 import {ReleaseType, inc} from 'semver';
 
 function run(): void {

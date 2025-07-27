@@ -1,13 +1,14 @@
-import * as process from 'process';
-import * as cp from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as tmp from 'tmp';
+'use strict';
+
+import cp from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import tmp from 'tmp';
 import {expect, test, describe} from '@jest/globals';
 
 describe('runs', () => {
   const np = process.execPath;
-  const ip = path.join(__dirname, '..', 'lib', 'main.js');
+  const ip = path.join(import.meta.dirname, '..', 'dist', 'index.js');
 
   function getOutputFilename(): string | undefined {
     return tmp.fileSync({prefix: 'gh-output-'}).name;
